@@ -4,26 +4,41 @@ from tools import tools, handle_tool_calls
 from styles import CSS, JS, EXAMPLES
 from dotenv import load_dotenv
 import gradio as gr
+import os
 
 load_dotenv(override=True)
 
-MODEL_NAME = "gpt-5.4-mini"
+MODEL_NAME = "mistral-large-2512"
 
-openai = OpenAI()
+# The usual start
+
+load_dotenv(override=True)
+azure_api_key = os.getenv("AZURE_API_KEY")  # or AZURE_API_KEY, whatever you named it
+azure_endpoint = os.getenv("AZURE_ENDPOINT")
+mistral_endpoint = os.getenv("MISTRAL_ENDPOINT")
+mistral_api_key = os.getenv("MISTRAL_API_KEY")
+
+
+openai = OpenAI(api_key=mistral_api_key, base_url=mistral_endpoint)
+
 
 system = [{"role": "system", "content": TWIN_SYSTEM_PROMPT}]
 
 
 def chat(message, history):
     messages = system + history + [{"role": "user", "content": message}]
-    response = openai.chat.completions.create(model=MODEL_NAME, messages=messages, tools=tools)
+    response = openai.chat.completions.create(
+        model=MODEL_NAME, messages=messages, tools=tools
+    )
     while response.choices[0].finish_reason == "tool_calls":
         message = response.choices[0].message
         tool_calls = message.tool_calls
         results = handle_tool_calls(tool_calls)
         messages.append(message)
         messages.extend(results)
-        response = openai.chat.completions.create(model=MODEL_NAME, messages=messages, tools=tools)
+        response = openai.chat.completions.create(
+            model=MODEL_NAME, messages=messages, tools=tools
+        )
     return response.choices[0].message.content
 
 

@@ -22,6 +22,7 @@ dependencies = [
     "langchain-openai>=1.2.2",
     "langgraph>=1.2.4",
     "langgraph-checkpoint-sqlite>=3.1.0",
+    "litellm>=1.84",
     "massive>=2.8.0",
     "openai>=2.34.0",
     "openai-agents[sqlalchemy,viz]>=0.15.1",

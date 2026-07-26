@@ -19,7 +19,7 @@ def run():
     Run the crew.
     """
     inputs = {
-        "topic": "Most popular agents frameworks as of now",
+        "topic": "Most popular use cases of agentic AI",
         "current_year": str(datetime.now().year),
     }
 

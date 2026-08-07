@@ -16,18 +16,34 @@ TIMEOUT = 120
 if massive_api_key:
     market_params = {
         "command": "uvx",
-        "args": ["--from", "git+https://github.com/massive-com/mcp_massive@v0.10.0", "mcp_massive"],
+        "args": [
+            "--from",
+            "git+https://github.com/massive-com/mcp_massive@v0.10.0",
+            "mcp_massive",
+        ],
         "env": {"MASSIVE_API_KEY": massive_api_key},
     }
 else:
-    market_params = {"command": "uv", "args": ["run", "-m", "backend.market_server"], "cwd": PROJECT_DIR}
+    market_params = {
+        "command": "uv",
+        "args": ["run", "-m", "backend.market_server"],
+        "cwd": PROJECT_DIR,
+    }
 
 
 def trader_mcp_servers() -> list[MCPServerStdio]:
     """The trader's MCP servers: our Accounts server, Push Notification and Market data."""
     params = [
-        {"command": "uv", "args": ["run", "-m", "backend.accounts_server"], "cwd": PROJECT_DIR},
-        {"command": "uv", "args": ["run", "-m", "backend.push_server"], "cwd": PROJECT_DIR},
+        {
+            "command": "uv",
+            "args": ["run", "-m", "backend.accounts_server"],
+            "cwd": PROJECT_DIR,
+        },
+        {
+            "command": "uv",
+            "args": ["run", "-m", "backend.push_server"],
+            "cwd": PROJECT_DIR,
+        },
         market_params,
     ]
     return [MCPServerStdio(p, client_session_timeout_seconds=TIMEOUT) for p in params]
@@ -39,8 +55,18 @@ def researcher_mcp_servers(name: str) -> list[MCPServerStdio]:
     Tavily's server offers several tools; we restrict it to web search so the
     researcher reaches for plain search rather than its heavier crawl or deep-research tools.
     """
+
     fetch = MCPServerStdio(
-        {"command": "uvx", "args": ["mcp-server-fetch"]},
+        {
+            "command": "uvx",
+            "args": [
+                "--from",
+                "mcp-server-fetch==2026.7.10",
+                "--with",
+                "mcp>=1.27.0,<2.0.0",
+                "mcp-server-fetch",
+            ],
+        },
         client_session_timeout_seconds=TIMEOUT,
     )
     search = MCPServerStdio(

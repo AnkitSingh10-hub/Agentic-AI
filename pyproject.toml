@@ -24,6 +24,7 @@ dependencies = [
     "langgraph-checkpoint-sqlite>=3.1.0",
     "litellm>=1.84",
     "massive>=2.8.0",
+    "mcp[cli]>=1.27.0,<2.0.0",
     "openai>=2.34.0",
     "openai-agents[sqlalchemy,viz]>=0.15.1",
     "plotly>=6.8.0",

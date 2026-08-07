@@ -1,7 +1,15 @@
 from contextlib import AsyncExitStack
 from .accounts_client import read_accounts_resource, read_strategy_resource
 from .tracers import make_trace_id
-from agents import Agent, Tool, Runner, OpenAIChatCompletionsModel, trace
+from agents import (
+    Agent,
+    Tool,
+    Runner,
+    OpenAIChatCompletionsModel,
+    trace,
+    set_default_openai_client,
+    set_tracing_disabled,
+)
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
 import os
@@ -17,35 +25,21 @@ from .mcp_servers import trader_mcp_servers, researcher_mcp_servers
 
 load_dotenv(override=True)
 
-deepseek_api_key = os.getenv("DEEPSEEK_API_KEY")
-google_api_key = os.getenv("GOOGLE_API_KEY")
-grok_api_key = os.getenv("GROK_API_KEY")
-openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
-
-DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1"
-GROK_BASE_URL = "https://api.x.ai/v1"
-GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
-OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-
 MAX_TURNS = 30
 
-openrouter_client = AsyncOpenAI(base_url=OPENROUTER_BASE_URL, api_key=openrouter_api_key)
-deepseek_client = AsyncOpenAI(base_url=DEEPSEEK_BASE_URL, api_key=deepseek_api_key)
-grok_client = AsyncOpenAI(base_url=GROK_BASE_URL, api_key=grok_api_key)
-gemini_client = AsyncOpenAI(base_url=GEMINI_BASE_URL, api_key=google_api_key)
+azure_client = AsyncOpenAI(
+    api_key=os.getenv("AZURE_API_KEY"),
+    base_url=os.getenv("AZURE_ENDPOINT"),
+)
+
+set_default_openai_client(azure_client)
+set_tracing_disabled(
+    True
+)  # OpenAI tracing needs an OpenAI platform key — disable unless you have one
 
 
 def get_model(model_name: str):
-    if "/" in model_name:
-        return OpenAIChatCompletionsModel(model=model_name, openai_client=openrouter_client)
-    elif "deepseek" in model_name:
-        return OpenAIChatCompletionsModel(model=model_name, openai_client=deepseek_client)
-    elif "grok" in model_name:
-        return OpenAIChatCompletionsModel(model=model_name, openai_client=grok_client)
-    elif "gemini" in model_name:
-        return OpenAIChatCompletionsModel(model=model_name, openai_client=gemini_client)
-    else:
-        return model_name
+    return OpenAIChatCompletionsModel(model=model_name, openai_client=azure_client)
 
 
 async def get_researcher(mcp_servers, model_name) -> Agent:
@@ -102,7 +96,8 @@ class Trader:
     async def run_with_mcp_servers(self):
         async with AsyncExitStack() as stack:
             trader_servers = [
-                await stack.enter_async_context(server) for server in trader_mcp_servers()
+                await stack.enter_async_context(server)
+                for server in trader_mcp_servers()
             ]
             researcher_servers = [
                 await stack.enter_async_context(server)
@@ -111,7 +106,9 @@ class Trader:
             await self.run_agent(trader_servers, researcher_servers)
 
     async def run_with_trace(self):
-        trace_name = f"{self.name}-trading" if self.do_trade else f"{self.name}-rebalancing"
+        trace_name = (
+            f"{self.name}-trading" if self.do_trade else f"{self.name}-rebalancing"
+        )
         trace_id = make_trace_id(f"{self.name.lower()}")
         with trace(trace_name, trace_id=trace_id):
             await self.run_with_mcp_servers()

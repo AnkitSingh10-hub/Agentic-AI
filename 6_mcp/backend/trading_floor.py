@@ -13,22 +13,13 @@ RUN_EVERY_N_MINUTES = int(os.getenv("RUN_EVERY_N_MINUTES", "60"))
 RUN_EVEN_WHEN_MARKET_IS_CLOSED = (
     os.getenv("RUN_EVEN_WHEN_MARKET_IS_CLOSED", "false").strip().lower() == "true"
 )
-USE_MANY_MODELS = os.getenv("USE_MANY_MODELS", "false").strip().lower() == "true"
 
 names = ["Warren", "George", "Ray", "Cathie"]
 lastnames = ["Patience", "Bold", "Systematic", "Crypto"]
 
-if USE_MANY_MODELS:
-    model_names = [
-        "gpt-5.5",
-        "deepseek-v4-flash",
-        "gemini-3.5-flash",
-        "grok-4.3",
-    ]
-    short_model_names = ["GPT 5.5", "DeepSeek V4", "Gemini 3.5 Flash", "Grok 4.3"]
-else:
-    model_names = ["gpt-5.4-mini"] * 4
-    short_model_names = ["GPT 5.4 mini"] * 4
+
+model_names = ["gpt-5.6-terra"] * 4
+short_model_names = ["gpt-5.6-terra"] * 4
 
 
 def create_traders() -> List[Trader]:
@@ -38,7 +29,18 @@ def create_traders() -> List[Trader]:
     return traders
 
 
+# Windows' ProactorEventLoop logs a noisy but harmless ConnectionResetError when an
+# MCP subprocess's stdio pipe is torn down. Filter just that case out of asyncio's
+# default exception logging so real errors still surface normally.
+def _quiet_windows_pipe_reset(loop, context):
+    exception = context.get("exception")
+    if isinstance(exception, ConnectionResetError):
+        return
+    loop.default_exception_handler(context)
+
+
 async def run_every_n_minutes():
+    asyncio.get_event_loop().set_exception_handler(_quiet_windows_pipe_reset)
     add_trace_processor(LogTracer())
     traders = create_traders()
     while True:

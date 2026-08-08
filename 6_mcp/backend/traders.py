@@ -117,5 +117,5 @@ class Trader:
         try:
             await self.run_with_trace()
         except Exception as e:
-            print(f"Error running trader {self.name}: {e}")
+            print(f"Error running trader bad {self.name}: {e}")
         self.do_trade = not self.do_trade
